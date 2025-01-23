@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+/* @import 'tailwindcss' @theme {
+    --color-primary: #aab9ff;
+  } */
+
+const pratham = [
+  userid: 'ASDASDA',
+  
+]
