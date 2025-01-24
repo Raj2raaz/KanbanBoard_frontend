@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, arrayMove, horizontalListSortingStrategy } from '@dnd-kit/sortable';
-import Layout from '../../../client/src/components/Layout';
-import KanbanColumn from '../../../client/src/components/kanbanColumn';
+import Layout from '../components/Layout';
+import KanbanColumn from '../components/KanbanColumn';
 import { io } from 'socket.io-client';
 
 // Use a fixed custom socket ID

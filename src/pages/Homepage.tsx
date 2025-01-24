@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import LoginForm from "../../../client/src/components/LoginForm";
-import SignupForm from "../../../client/src/components/SignupForm";
+import LoginForm from "../components/LoginForm";
+import SignupForm from "../components/SignupForm";
+import Navbar from "../components/Navbar";
 import { FaSignInAlt, FaUserPlus } from "react-icons/fa";
 
 const Homepage: React.FC = () => {
@@ -8,6 +9,7 @@ const Homepage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-300 dark:from-gray-900 dark:to-gray-700 flex flex-col text-gray-900 dark:text-gray-200 transition-all duration-300">
+      <Navbar/>
       <div className="flex-1 flex flex-col justify-center items-center px-6">
         {/* Toggle Button */}
         <div className="flex items-center justify-center mb-10">
