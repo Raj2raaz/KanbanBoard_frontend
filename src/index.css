@@ -4,3 +4,16 @@
 /* @import 'tailwindcss' @theme {
     --color-primary: #aab9ff;
   } */
+
+  /* Global dragging class to show cursor outside columns */
+body.dragging {
+  cursor: grabbing !important;
+}
+
+/* Smooth column transition when hovering with task */
+.drop-placeholder {
+  height: 50px;
+  background-color: rgba(0, 0, 255, 0.1);
+  border: 2px dashed blue;
+  transition: all 0.3s ease-in-out;
+}

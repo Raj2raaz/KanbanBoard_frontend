@@ -11,12 +11,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div className="min-h-screen bg-gray-100 dark:bg-gray-800 dark:text-gray-200 flex">
       {/* Sidebar */}
       <Sidebar />
-      
+
       {/* Main Content Area */}
-      <div className="flex-1">
+      <div className="flex-1" style={{ width: '80%' }}>
         {/* Navbar */}
         <Navbar />
-        
+
         {/* Dynamic Content */}
         <main className="p-6">{children}</main>
       </div>
