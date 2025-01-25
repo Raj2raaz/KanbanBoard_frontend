@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { rectSortingStrategy, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -7,6 +7,17 @@ import KanbanTask from "./KanbanTask";
 import { v4 as uniqueId } from "uuid";
 import { FaEdit, FaTrash, FaPlus } from "react-icons/fa";
 import { RiDragMove2Fill } from "react-icons/ri";
+import io from "socket.io-client";
+import { useDispatch } from "react-redux";
+import { addTask } from "../../redux/slices/taskSlice";
+
+// Initialize socket connection
+const socket = io('http://localhost:4000', {
+  query: { userId: "9535030958" }, // Set a fixed user ID
+  reconnection: true,
+  reconnectionAttempts: 5,
+  reconnectionDelay: 2000,
+});
 
 interface ColumnProps {
   column: {
@@ -19,6 +30,7 @@ interface ColumnProps {
 }
 
 const KanbanColumn: React.FC<ColumnProps> = ({ column, columns, setColumns }) => {
+  const dispatch = useDispatch();
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
   const { attributes, listeners, setNodeRef: sortableRef, transform, transition } = useSortable({
@@ -29,9 +41,24 @@ const KanbanColumn: React.FC<ColumnProps> = ({ column, columns, setColumns }) =>
   const [isEditing, setIsEditing] = useState(false);
   const [columnTitle, setColumnTitle] = useState(column.title);
 
+  useEffect(() => {
+    // Listen for real-time column updates
+    socket.on("columnUpdated", (updatedColumns) => {
+      setColumns(updatedColumns);
+    });
+
+    return () => {
+      socket.off("columnUpdated");
+    };
+  }, [setColumns]);
+
   // Delete the column
   const handleDeleteColumn = () => {
-    setColumns(columns.filter((col) => col.id !== column.id));
+    const updatedColumns = columns.filter((col) => col.id !== column.id);
+    setColumns(updatedColumns);
+
+    // Emit event to the server
+    socket.emit("deleteColumn", { columnId: column.id });
   };
 
   // Enable column editing mode
@@ -42,30 +69,47 @@ const KanbanColumn: React.FC<ColumnProps> = ({ column, columns, setColumns }) =>
   // Save the edited column title
   const handleSaveColumn = () => {
     if (!columnTitle.trim()) return;
-    setColumns(
-      columns.map((col) =>
-        col.id === column.id ? { ...col, title: columnTitle } : col
-      )
+    const updatedColumns = columns.map((col) =>
+      col.id === column.id ? { ...col, title: columnTitle } : col
     );
+
+    setColumns(updatedColumns);
     setIsEditing(false);
+
+    // Emit event to the server
+    socket.emit("editColumn", { columnId: column.id, title: columnTitle });
   };
 
   // Add new task to the column
   const handleAddTask = () => {
     console.log("Adding task to column:", column.id);
-    setColumns(columns =>
-      columns.map(col =>
-        col.id === column.id
-          ? {
-            ...col,
-            items: [
-              ...col.items,
-              { id: uniqueId(), title: `New Task ${col.items.length + 1}` }
-            ]
-          }
-          : col
-      )
+    const newTask = { id: uniqueId(), title: `New Task ${column.items.length + 1}` };
+
+    const updatedColumns = columns.map((col) =>
+      col.id === column.id
+        ? {
+          ...col,
+          items: [...col.items, newTask],
+        }
+        : col
     );
+
+    console.log('add', updatedColumns)
+    setColumns(updatedColumns);
+    // Prepare task data
+    const newTaskData = {
+      title: `New Task ${column.items.length + 1}`,
+      description: "This is a dummy task",
+      dueDate: new Date().toISOString(),
+      columnId: column.id,
+    };
+
+    // Dispatch Redux action to add task
+    dispatch(addTask({ boardId: "123123123", columnId: column.id, taskData: newTaskData }));
+
+    // Emit event to the server via socket
+    // socket.emit("addTask", { id: column.id, task: newTaskData });
+    // Emit event to the server
   };
 
   const style = {
@@ -85,7 +129,7 @@ const KanbanColumn: React.FC<ColumnProps> = ({ column, columns, setColumns }) =>
           {isEditing ? (
             <input
               type="text"
-              style={{ marginRight: '2px' }}
+              style={{ marginRight: "2px" }}
               value={columnTitle}
               onChange={(e) => setColumnTitle(e.target.value)}
               onBlur={handleSaveColumn}
@@ -104,7 +148,9 @@ const KanbanColumn: React.FC<ColumnProps> = ({ column, columns, setColumns }) =>
             <button onClick={handleDeleteColumn} className="text-red-500 hover:text-red-700">
               <FaTrash />
             </button>
-            <span ref={sortableRef} style={{ cursor: 'grab' }}  {...attributes} {...listeners}><RiDragMove2Fill /></span>
+            <span ref={sortableRef} style={{ cursor: "grab" }} {...attributes} {...listeners}>
+              <RiDragMove2Fill />
+            </span>
           </div>
         </div>
 
@@ -115,13 +161,12 @@ const KanbanColumn: React.FC<ColumnProps> = ({ column, columns, setColumns }) =>
             ))}
           </div>
         </SortableContext>
-
       </div>
       <button
         onClick={handleAddTask}
         className="mt-4 flex items-center justify-center gap-2 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition"
       >
-        <FaPlus /> Add Task wakanda
+        <FaPlus /> Add Task
       </button>
     </div>
   );

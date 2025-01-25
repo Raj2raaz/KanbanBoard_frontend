@@ -44,15 +44,14 @@ const LoginForm: React.FC = () => {
       // Dispatch login success action to Redux
       dispatch(
         loginSuccess({
-          accessToken: userData.accessToken,
-          refreshToken: userData.refreshToken,
+          accessToken: userData.refreshToken,
           expiresAt: userData.expiresAt,
           user: userData.user,
         })
       );
 
       // Store token in localStorage for persistence
-      localStorage.setItem("accessToken", userData.accessToken);
+      localStorage.setItem("accessToken", userData.refreshToken);
       // console.log(userData.accessToken+ "*****")
 
       // Redirect to dashboard after login

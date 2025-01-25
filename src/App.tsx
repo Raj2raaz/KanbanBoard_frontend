@@ -1,79 +1,67 @@
 import React, { useState, useEffect } from "react";
-import { io } from 'socket.io-client'
+import { io } from 'socket.io-client';
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Homepage from "./pages/Homepage";
-import Navbar from "../../client/src/components/Navbar";
-import Layout from "../../client/src/components/Layout";
 import Dashboard from "./pages/Dashboard";
+import { useSelector } from "react-redux";
+import { RootState } from "./redux/store";
 
-const socket = io("http://localhost:5173"); // Replace with your server URL
+// Connect to the Socket.IO server with appropriate options
+const socket = io("http://localhost:5173", {
+  reconnection: true,
+  reconnectionAttempts: 5,
+  reconnectionDelay: 2000,
+});
+
 const App: React.FC = () => {
+  const user = useSelector((state: RootState) => state.auth.user);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!user);
+
+  useEffect(() => {
+    // Check authentication status when user state changes
+    if (user) {
+      setIsAuthenticated(true);
+    } else {
+      setIsAuthenticated(false);
+    }
+  }, [user]);
+
   useEffect(() => {
     // Listen for updates
     socket.on('taskUpdated', (data) => {
       console.log('Task update received:', data);
     });
 
+    socket.on('connect_error', (error) => {
+      console.error("Socket connection error:", error);
+    });
+
     return () => {
-      // Cleanup
+      // Cleanup socket connection on unmount
       socket.disconnect();
     };
   }, []);
 
-  // const updateTask = (task: any) => {
-  //   // Emit a taskUpdated event
-  //   socket.emit('taskUpdated', task);
-  // };
-  // State to track authentication status
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  // Simulate a login function (Replace with real logic)
-  // const handleLogin = () => setIsAuthenticated(true);
-  // const handleLogout = () => setIsAuthenticated(false);
-
   // Protected Route Component
-  // const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  //   return isAuthenticated ? (
-  //     <>{children}</>
-  //   ) : (
-  //     <Navigate to="/" replace />
-  //   );
-  // };
+  const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+    return isAuthenticated ? children : <Navigate to="/" replace />;
+  };
 
   return (
     <Router>
       <Routes>
-        {/* Public Routes */}
+        {/* Public Route */}
         <Route path="/" element={<Homepage />} />
-        {/* Protected Routes (with Layout) */}
+
+        {/* Protected Route */}
         <Route
           path="/dashboard"
           element={
-            // <ProtectedRoute>
-            <Dashboard />
-            // </ProtectedRoute>
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
           }
         />
-        {/* <Route
-          path="/shared-boards"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <SharedBoards />
-              </Layout>
-            </ProtectedRoute>
-          }
-        /> */}
-        {/* <Route
-          path="/create-board"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <CreateBoard />
-              </Layout>
-            </ProtectedRoute>
-          }
-        /> */}
       </Routes>
     </Router>
   );

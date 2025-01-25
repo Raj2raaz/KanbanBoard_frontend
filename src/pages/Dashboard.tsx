@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { DndContext, closestCorners, DragOverlay } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -9,20 +9,53 @@ import Layout from "../components/Layout";
 import KanbanColumn from "../components/Kanban/KanbanColumn";
 import { uniqueId } from "lodash";
 import { CSS } from "@dnd-kit/utilities";
+import { io } from "socket.io-client";
+import { getBoardData } from "../services/userApiServices";
 
 const Dashboard: React.FC = () => {
   const [columns, setColumns] = useState([]);
   const [activeTask, setActiveTask] = useState<any>(null);
   const [showAddColumnButton, setShowAddColumnButton] = useState(true);
 
-  // Function to add a new column
+  // Initialize Socket.io connection
+  const socket = io("http://localhost:4000", {
+    query: { userId: "9535030958" },
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 2000,
+  });
+  const userData = getBoardData(); // Call API
+
+  useEffect(() => {
+    // Listen for task updates
+    socket.on("taskUpdated", (updatedColumns) => {
+      console.log("Received task update:", updatedColumns);
+      setColumns(updatedColumns);
+    });
+
+    // Listen for column updates
+    socket.on("columnUpdated", (updatedColumns) => {
+      console.log("Received column update:", updatedColumns);
+      setColumns(updatedColumns);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
+  // Function to add a new column and emit event
   const handleAddColumn = () => {
     const newColumn = {
       id: `col-${uniqueId()}`,
       title: "New Column",
       items: [],
     };
-    setColumns([...columns, newColumn]);
+
+    const updatedColumns = [...columns, newColumn];
+    setColumns(updatedColumns);
+    socket.emit("columnUpdated", updatedColumns);
+
     setShowAddColumnButton(false);
   };
 
@@ -87,6 +120,7 @@ const Dashboard: React.FC = () => {
         }
       }
 
+      socket.emit("taskUpdated", updatedColumns);
       return updatedColumns;
     });
   };
@@ -95,25 +129,27 @@ const Dashboard: React.FC = () => {
     setActiveTask(null);
   };
 
+  // Styling for the DragOverlay component
   const overlayStyle = {
     opacity: 0.5,
     boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
     backgroundColor: "#fff",
-    width: '280px',
+    width: "280px",
     transform: "translateX(-80%) translateY(-50%)",
   };
 
   const container = {
     maxHeight: "90vh",
     maxWidth: "90%",
-    alignItems: 'start'
-  }
+    alignItems: "start",
+  };
 
+  // Flatten tasks to handle sortable context properly
   const allTaskIds = columns.flatMap((col) => col.items.map((task) => task.id));
 
   return (
     <Layout>
-      <div style={{ display: 'flex', gap: '10px' }}>
+      <div style={{ display: "flex", gap: "10px" }}>
         <DndContext
           collisionDetection={closestCorners}
           onDragStart={onDragStart}
@@ -138,19 +174,22 @@ const Dashboard: React.FC = () => {
             <SortableContext items={allTaskIds}>
               <div className="hidden" />
             </SortableContext>
-
-            {/* Add Column Button */}
           </div>
 
-          {/* Drag Overlay to make the dragging visible and styled correctly */}
-          <DragOverlay >
+          {/* Drag Overlay for visual feedback */}
+          <DragOverlay>
             {activeTask && (
-              <div style={overlayStyle} className="border p-3 rounded-md bg-white dark:bg-gray-700 flex justify-between items-center transition-all shadow-md hover:shadow-lg">
+              <div
+                style={overlayStyle}
+                className="border p-3 rounded-md bg-white dark:bg-gray-700 flex justify-between items-center transition-all shadow-md hover:shadow-lg"
+              >
                 {activeTask.title}
               </div>
             )}
           </DragOverlay>
         </DndContext>
+
+        {/* Add Column Button */}
         {showAddColumnButton ? (
           <button
             onClick={handleAddColumn}
@@ -162,8 +201,8 @@ const Dashboard: React.FC = () => {
           <button
             onClick={handleAddColumn}
             style={{
-              maxHeight: '50px',
-              marginTop: '20px'
+              maxHeight: "50px",
+              marginTop: "20px",
             }}
             className="px-4 py-2 bg-blue-500 text-white rounded-full shadow-md hover:bg-blue-600 transition-all"
           >
@@ -171,7 +210,6 @@ const Dashboard: React.FC = () => {
           </button>
         )}
       </div>
-
     </Layout>
   );
 };

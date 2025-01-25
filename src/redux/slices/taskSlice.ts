@@ -1,25 +1,48 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import axios from "axios";
 
-interface TaskState {
-  tasks: { id: string; columnId: string; content: string }[];
-}
+// Define API base URL
+const API_BASE_URL = "http://localhost:4000"; // Update this as per your backend
 
-const initialState: TaskState = {
-  tasks: [],
-};
+// Async thunk to add a new task
+export const addTask = createAsyncThunk(
+  "tasks/addTask",
+  async ({ boardId, columnId, taskData }, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/boards/${boardId}/columns/${columnId}/tasks`,
+        taskData
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || "Something went wrong");
+    }
+  }
+);
 
 const taskSlice = createSlice({
-  name: "task",
-  initialState,
-  reducers: {
-    addTask: (state, action: PayloadAction<{ id: string; columnId: string; content: string }>) => {
-      state.tasks.push(action.payload);
-    },
-    deleteTask: (state, action: PayloadAction<string>) => {
-      state.tasks = state.tasks.filter((task) => task.id !== action.payload);
-    },
+  name: "tasks",
+  initialState: {
+    tasks: [],
+    loading: false,
+    error: null,
+  },
+  reducers: {},
+
+  extraReducers: (builder) => {
+    builder
+      .addCase(addTask.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(addTask.fulfilled, (state, action) => {
+        state.loading = false;
+        state.tasks.push(action.payload);
+      })
+      .addCase(addTask.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
   },
 });
 
-export const { addTask, deleteTask } = taskSlice.actions;
 export default taskSlice.reducer;

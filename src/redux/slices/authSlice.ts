@@ -1,9 +1,15 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { AuthState, AuthPayload } from "../types/authTypes";
+import { persistReducer } from "redux-persist";
+import storage from "redux-persist/lib/storage";
+
+const persistConfig = {
+  key: "auth",
+  storage,
+};
 
 const initialState: AuthState = {
   accessToken: null,
-  refreshToken: null,
   expiresAt: null,
   user: null,
 };
@@ -13,14 +19,12 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     loginSuccess: (state, action: PayloadAction<AuthPayload>) => {
-      state.accessToken = action.payload.accessToken;
-      state.refreshToken = action.payload.refreshToken;
+      state.accessToken = action.payload.refreshToken;
       state.expiresAt = action.payload.expiresAt;
       state.user = action.payload.user;
     },
     logout: (state) => {
       state.accessToken = null;
-      state.refreshToken = null;
       state.expiresAt = null;
       state.user = null;
     },
@@ -28,4 +32,4 @@ const authSlice = createSlice({
 });
 
 export const { loginSuccess, logout } = authSlice.actions;
-export default authSlice.reducer;
+export default persistReducer(persistConfig, authSlice.reducer);

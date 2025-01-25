@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { FaTrash, FaEdit, FaSave } from "react-icons/fa";
 import { RiDragMove2Fill } from "react-icons/ri";
-import { DragOverlay } from "@dnd-kit/core";
+import io from "socket.io-client";
 
 interface TaskProps {
     task: { id: string; title: string };
@@ -11,6 +11,14 @@ interface TaskProps {
     columns: any[];
     setColumns: (columns: any[]) => void;
 }
+
+// Initialize socket connection
+const socket = io('http://localhost:4000', {
+    query: { userId: "9535030958" }, // Set a fixed user ID
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 2000,
+});
 
 const KanbanTask: React.FC<TaskProps> = ({ task, columnId, columns, setColumns }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -21,15 +29,29 @@ const KanbanTask: React.FC<TaskProps> = ({ task, columnId, columns, setColumns }
     const [isEditing, setIsEditing] = useState(false);
     const [newTitle, setNewTitle] = useState(task.title);
 
+    useEffect(() => {
+        // Listen for task updates via socket
+        socket.on("taskUpdated", (updatedColumns) => {
+            setColumns(updatedColumns);
+        });
+
+        return () => {
+            socket.off("taskUpdated");
+        };
+    }, [setColumns]);
+
     // Function to handle task deletion
     const handleDeleteTask = () => {
-        setColumns((prevColumns) =>
-            prevColumns.map((col) =>
-                col.id === columnId
-                    ? { ...col, items: col.items.filter((item) => item.id !== task.id) }
-                    : col
-            )
+        const updatedColumns = columns.map((col) =>
+            col.id === columnId
+                ? { ...col, items: col.items.filter((item) => item.id !== task.id) }
+                : col
         );
+
+        setColumns(updatedColumns);
+
+        // Emit event to the server
+        socket.emit("deleteTask", { taskId: task.id, columnId });
     };
 
     // Function to toggle editing mode
@@ -40,19 +62,23 @@ const KanbanTask: React.FC<TaskProps> = ({ task, columnId, columns, setColumns }
     // Function to save the edited task title
     const handleSaveEdit = () => {
         if (!newTitle.trim()) return;
-        setColumns((prevColumns) =>
-            prevColumns.map((col) =>
-                col.id === columnId
-                    ? {
-                        ...col,
-                        items: col.items.map((item) =>
-                            item.id === task.id ? { ...item, title: newTitle } : item
-                        ),
-                    }
-                    : col
-            )
+
+        const updatedColumns = columns.map((col) =>
+            col.id === columnId
+                ? {
+                    ...col,
+                    items: col.items.map((item) =>
+                        item.id === task.id ? { ...item, title: newTitle } : item
+                    ),
+                }
+                : col
         );
+
+        setColumns(updatedColumns);
         setIsEditing(false);
+
+        // Emit event to the server
+        socket.emit("editTask", { taskId: task.id, columnId, newTitle });
     };
 
     const style = {
@@ -62,7 +88,6 @@ const KanbanTask: React.FC<TaskProps> = ({ task, columnId, columns, setColumns }
         boxShadow: isDragging ? "0 4px 8px rgba(0, 0, 0, 0.2)" : "none",
         backgroundColor: isDragging ? "#e0f2fe" : "#fff",
     };
-
 
     return (
         <div
@@ -91,17 +116,15 @@ const KanbanTask: React.FC<TaskProps> = ({ task, columnId, columns, setColumns }
                 )}
                 <FaTrash className="cursor-pointer text-red-500" onClick={handleDeleteTask} />
                 <span
-                    style={{ cursor: 'grab' }}
+                    style={{ cursor: "grab" }}
                     ref={setNodeRef}
                     {...attributes}
                     {...listeners}
                 >
                     <RiDragMove2Fill />
                 </span>
-
             </div>
         </div>
-
     );
 };
 
