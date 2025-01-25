@@ -5,6 +5,7 @@ import Homepage from "./pages/Homepage";
 import Dashboard from "./pages/Dashboard";
 import { useSelector } from "react-redux";
 import { RootState } from "./redux/store";
+import CreateBoardPage from "./pages/CreateBoardPage";
 
 // Connect to the Socket.IO server with appropriate options
 const socket = io("http://localhost:5173", {
@@ -32,9 +33,9 @@ const App: React.FC = () => {
       console.log('Task update received:', data);
     });
 
-    socket.on('connect_error', (error) => {
-      console.error("Socket connection error:", error);
-    });
+    // socket.on('connect_error', (error) => {
+    //   console.error("Socket connection error:", error);
+    // });
 
     return () => {
       // Cleanup socket connection on unmount
@@ -42,26 +43,49 @@ const App: React.FC = () => {
     };
   }, []);
 
-  // Protected Route Component
+  // Protected Route Component to restrict unauthenticated access
   const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return isAuthenticated ? children : <Navigate to="/" replace />;
+  };
+
+  // Public Route Component to prevent authenticated users from accessing '/'
+  const PublicRoute = ({ children }: { children: React.ReactNode }) => {
+    return isAuthenticated ? <Navigate to="/createBoard" replace /> : children;
   };
 
   return (
     <Router>
       <Routes>
-        {/* Public Route */}
-        <Route path="/" element={<Homepage />} />
-
-        {/* Protected Route */}
+        {/* Public Route - Redirect authenticated users to dashboard */}
         <Route
-          path="/dashboard"
+          path="/"
+          element={
+            <PublicRoute>
+              <Homepage />
+            </PublicRoute>
+          }
+        />
+
+        {/* Protected Route - Redirect unauthenticated users to homepage */}
+        <Route
+          path="/createBoard"
+          element={
+            <ProtectedRoute>
+              <CreateBoardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/boards/:boardId"
           element={
             <ProtectedRoute>
               <Dashboard />
             </ProtectedRoute>
           }
         />
+
+        {/* Redirect any unknown route to homepage */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );

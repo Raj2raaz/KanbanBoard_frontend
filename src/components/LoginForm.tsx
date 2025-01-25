@@ -55,7 +55,7 @@ const LoginForm: React.FC = () => {
       // console.log(userData.accessToken+ "*****")
 
       // Redirect to dashboard after login
-      navigate("/dashboard");
+      navigate("/createBoard");
     } catch (err: any) {
       setFormData({
         ...formData,

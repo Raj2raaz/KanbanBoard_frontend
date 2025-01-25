@@ -10,12 +10,29 @@ import KanbanColumn from "../components/Kanban/KanbanColumn";
 import { uniqueId } from "lodash";
 import { CSS } from "@dnd-kit/utilities";
 import { io } from "socket.io-client";
-import { getBoardData } from "../services/userApiServices";
+import { getBoardData, createColumn } from "../services/userApiServices";
+import { useParams } from "react-router-dom";
+import { useSelector, UseSelector } from "react-redux";
+import { RootState } from "@reduxjs/toolkit/query";
+import { toast, ToastContainer } from 'react-toastify';
+import "react-toastify/dist/ReactToastify.css";
+
+
 
 const Dashboard: React.FC = () => {
-  const [columns, setColumns] = useState([]);
+  const [columns, setColumns] = useState<any[]>([]);
+
   const [activeTask, setActiveTask] = useState<any>(null);
+  const [boardData, setBoardData] = useState({})
   const [showAddColumnButton, setShowAddColumnButton] = useState(true);
+  const { boardId } = useParams<{ boardId: string }>();
+  // Get the user ID and accessToken from Redux state
+  const user = useSelector((state: RootState) => state.auth.user);
+  const token = localStorage.getItem("accessToken");
+
+  // const token = localStorage.getItem("accessToken");
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isColumnLoading, setIsColumnLoading] = useState<boolean>(true);
 
   // Initialize Socket.io connection
   const socket = io("http://localhost:4000", {
@@ -24,7 +41,41 @@ const Dashboard: React.FC = () => {
     reconnectionAttempts: 5,
     reconnectionDelay: 2000,
   });
-  const userData = getBoardData(); // Call API
+
+  const fetchBoard = async () => {
+    try {
+      const boardData = await getBoardData(boardId, token);
+      console.log("this is board", boardData);
+      return boardData;
+    } catch (error) {
+      console.error("Error fetching board:", error);
+    }
+  };
+
+  useEffect(() => {
+    const loadBoard = async () => {
+      try {
+        const board = await fetchBoard();
+        if (board) {
+          setBoardData(board);  // Updating state after data is fetched
+          console.log("this is boardData", board);
+
+          // Extracting columns from the fetched board data and updating state
+          if (board?.board?.columns) {
+            setColumns(board.board.columns);
+            console.log("Updated columns:", board.board.columns);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading board:", error);
+      } finally {
+        setIsLoading(false);  // Ensure loading state is updated in all cases
+      }
+    };
+
+    loadBoard();
+  }, [boardId, token]);
+
 
   useEffect(() => {
     // Listen for task updates
@@ -45,19 +96,47 @@ const Dashboard: React.FC = () => {
   }, []);
 
   // Function to add a new column and emit event
-  const handleAddColumn = () => {
-    const newColumn = {
-      id: `col-${uniqueId()}`,
-      title: "New Column",
-      items: [],
-    };
+  // const handleAddColumn = () => {
+  //   const newColumn = {
+  //     id: `col-${uniqueId()}`,
+  //     title: "New Column",
+  //     items: [],
+  //   };
 
-    const updatedColumns = [...columns, newColumn];
-    setColumns(updatedColumns);
-    socket.emit("columnUpdated", updatedColumns);
+  //   const updatedColumns = [...columns, newColumn];
+  //   setColumns(updatedColumns);
+  //   socket.emit("columnUpdated", updatedColumns);
 
-    setShowAddColumnButton(false);
+  //   setShowAddColumnButton(false);
+  // };
+
+  const handleAddColumn = async () => {
+    if (!user || !token || !boardId) {
+      alert("User not authenticated or Board ID missing");
+      return;
+    }
+
+    setIsColumnLoading(true);
+    try {
+      const newColumn = await createColumn("New Column", boardId, token);
+      console.log("Created Column:", newColumn);
+      toast.success("Column Created Successfully!");
+
+      setColumns((prevColumns) => {
+        const updatedColumns = [...prevColumns, newColumn.column];
+        console.log(updatedColumns); // Debugging to check updated state
+        return updatedColumns;
+      });
+
+    } catch (error) {
+      console.error("Column creation failed:", error);
+      alert("Failed to create column. Please try again.");
+    } finally {
+      setIsColumnLoading(false);
+    }
   };
+
+
 
   const onDragStart = (event: any) => {
     const { active } = event;
@@ -145,72 +224,80 @@ const Dashboard: React.FC = () => {
   };
 
   // Flatten tasks to handle sortable context properly
-  const allTaskIds = columns.flatMap((col) => col.items.map((task) => task.id));
+  const allTaskIds = columns?.length > 0
+    ? columns.flatMap((col) => col.items?.map((task) => task.id) || [])
+    : [];
 
   return (
-    <Layout>
-      <div style={{ display: "flex", gap: "10px" }}>
-        <DndContext
-          collisionDetection={closestCorners}
-          onDragStart={onDragStart}
-          onDragOver={onDragOver}
-          onDragEnd={onDragEnd}
-        >
-          <div style={container} className="flex gap-4 p-4 overflow-x-auto">
-            <SortableContext
-              items={columns.map((col) => col.id)}
-              strategy={horizontalListSortingStrategy}
-            >
-              {columns.map((column) => (
-                <KanbanColumn
-                  key={column.id}
-                  column={column}
-                  columns={columns}
-                  setColumns={setColumns}
-                />
-              ))}
-            </SortableContext>
-
-            <SortableContext items={allTaskIds}>
-              <div className="hidden" />
-            </SortableContext>
-          </div>
-
-          {/* Drag Overlay for visual feedback */}
-          <DragOverlay>
-            {activeTask && (
-              <div
-                style={overlayStyle}
-                className="border p-3 rounded-md bg-white dark:bg-gray-700 flex justify-between items-center transition-all shadow-md hover:shadow-lg"
-              >
-                {activeTask.title}
-              </div>
-            )}
-          </DragOverlay>
-        </DndContext>
-
-        {/* Add Column Button */}
-        {showAddColumnButton ? (
-          <button
-            onClick={handleAddColumn}
-            className="px-6 py-3 bg-green-500 text-white rounded-md text-lg font-semibold hover:bg-green-600 transition-all"
-          >
-            Create Your Column
-          </button>
+    <>
+      {
+        isLoading ? (
+          <div> Loading </div >
         ) : (
-          <button
-            onClick={handleAddColumn}
-            style={{
-              maxHeight: "50px",
-              marginTop: "20px",
-            }}
-            className="px-4 py-2 bg-blue-500 text-white rounded-full shadow-md hover:bg-blue-600 transition-all"
-          >
-            + Add Column
-          </button>
-        )}
-      </div>
-    </Layout>
+          <Layout>
+            <ToastContainer position="top-right" autoClose={3000} />
+            <h1>{boardData?.board?.name}</h1>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <DndContext
+                collisionDetection={closestCorners}
+                onDragStart={onDragStart}
+                onDragOver={onDragOver}
+                onDragEnd={onDragEnd}
+              >
+                <div style={container} className="flex gap-4 p-4 overflow-x-auto">
+                  {columns?.length > 0 && (
+                    <SortableContext
+                      items={columns.map((col) => col.id)}
+                      strategy={horizontalListSortingStrategy}
+                    >
+                      {columns.map((column) => (
+                        <KanbanColumn
+                          key={column.id}
+                          column={column}
+                          columns={columns}
+                          setColumns={setColumns}
+                        />
+                      ))}
+                    </SortableContext>
+                  )}
+
+
+                  <SortableContext items={allTaskIds}>
+                    <div className="hidden" />
+                  </SortableContext>
+                </div>
+
+                {/* Drag Overlay for visual feedback */}
+                <DragOverlay>
+                  {activeTask && (
+                    <div
+                      style={overlayStyle}
+                      className="border p-3 rounded-md bg-white dark:bg-gray-700 flex justify-between items-center transition-all shadow-md hover:shadow-lg"
+                    >
+                      {activeTask.title}
+                    </div>
+                  )}
+                </DragOverlay>
+              </DndContext>
+
+
+              <button
+                onClick={handleAddColumn}
+                style={{
+                  maxHeight: "50px",
+                  marginTop: "20px",
+                }}
+                className="px-4 py-2 bg-blue-500 text-white rounded-full shadow-md hover:bg-blue-600 transition-all"
+              >
+                + Add Column
+              </button>
+            </div>
+          </Layout>
+        )
+      }
+    </>
+
+
   );
 };
 

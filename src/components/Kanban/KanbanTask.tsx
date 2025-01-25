@@ -4,6 +4,8 @@ import { CSS } from "@dnd-kit/utilities";
 import { FaTrash, FaEdit, FaSave } from "react-icons/fa";
 import { RiDragMove2Fill } from "react-icons/ri";
 import io from "socket.io-client";
+import { fetchTasks } from "../../services/userApiServices";
+import { useParams } from "react-router-dom";
 
 interface TaskProps {
     task: { id: string; title: string };
@@ -21,13 +23,17 @@ const socket = io('http://localhost:4000', {
 });
 
 const KanbanTask: React.FC<TaskProps> = ({ task, columnId, columns, setColumns }) => {
+    console.log('this is task from kanban', task)
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: task.id,
         data: { type: "task", columnId },
     });
-
     const [isEditing, setIsEditing] = useState(false);
     const [newTitle, setNewTitle] = useState(task.title);
+
+
+
+
 
     useEffect(() => {
         // Listen for task updates via socket
