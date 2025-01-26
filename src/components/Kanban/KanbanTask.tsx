@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { FaTrash, FaEdit, FaSave } from "react-icons/fa";
 import { RiDragMove2Fill } from "react-icons/ri";
 import io from "socket.io-client";
-import { fetchTasks } from "../../services/userApiServices";
-import { useParams } from "react-router-dom";
+// import { fetchTasks } from "../../services/taskApiService";
+// import { useParams } from "react-router-dom";
 
 interface TaskProps {
     task: { id: string; title: string };
@@ -23,33 +23,31 @@ const socket = io('http://localhost:4000', {
 });
 
 const KanbanTask: React.FC<TaskProps> = ({ task, columnId, columns, setColumns }) => {
-    console.log('this is task from kanban', task)
+    //('this is task from kanban', task)
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-        id: task.id,
+        //@ts-ignore
+        id: task._id,
         data: { type: "task", columnId },
     });
     const [isEditing, setIsEditing] = useState(false);
     const [newTitle, setNewTitle] = useState(task.title);
 
+    // useEffect(() => {
+    //     // Listen for task updates via socket
+    //     socket.on("taskUpdated", (updatedColumns) => {
+    //         setColumns(updatedColumns);
+    //     });
 
-
-
-
-    useEffect(() => {
-        // Listen for task updates via socket
-        socket.on("taskUpdated", (updatedColumns) => {
-            setColumns(updatedColumns);
-        });
-
-        return () => {
-            socket.off("taskUpdated");
-        };
-    }, [setColumns]);
+    //     return () => {
+    //         socket.off("taskUpdated");
+    //     };
+    // }, [setColumns]);
 
     // Function to handle task deletion
     const handleDeleteTask = () => {
         const updatedColumns = columns.map((col) =>
             col.id === columnId
+        //@ts-ignore
                 ? { ...col, items: col.items.filter((item) => item.id !== task.id) }
                 : col
         );
@@ -73,6 +71,7 @@ const KanbanTask: React.FC<TaskProps> = ({ task, columnId, columns, setColumns }
             col.id === columnId
                 ? {
                     ...col,
+                    //@ts-ignore
                     items: col.items.map((item) =>
                         item.id === task.id ? { ...item, title: newTitle } : item
                     ),

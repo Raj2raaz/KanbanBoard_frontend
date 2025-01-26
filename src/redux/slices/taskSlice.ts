@@ -7,6 +7,7 @@ const API_BASE_URL = "http://localhost:4000"; // Update this as per your backend
 // Async thunk to add a new task
 export const addTask = createAsyncThunk(
   "tasks/addTask",
+  //@ts-ignore
   async ({ boardId, columnId, taskData }, { rejectWithValue }) => {
     try {
       const response = await axios.post(
@@ -15,6 +16,7 @@ export const addTask = createAsyncThunk(
       );
       return response.data;
     } catch (error) {
+       //@ts-ignore
       return rejectWithValue(error.response?.data || "Something went wrong");
     }
   }
@@ -36,10 +38,12 @@ const taskSlice = createSlice({
       })
       .addCase(addTask.fulfilled, (state, action) => {
         state.loading = false;
+         //@ts-ignore
         state.tasks.push(action.payload);
       })
       .addCase(addTask.rejected, (state, action) => {
         state.loading = false;
+         //@ts-ignore
         state.error = action.payload;
       });
   },

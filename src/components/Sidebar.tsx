@@ -37,8 +37,13 @@ const Sidebar: React.FC = () => {
             </Link>
           </li>
           <li>
-            <Link to="/profile" className="flex items-center text-gray-700 dark:text-gray-200 hover:text-blue-600 transition-all duration-300">
+            <Link to={`/user-profile/${user?.id}`} className="flex items-center text-gray-700 dark:text-gray-200 hover:text-blue-600 transition-all duration-300">
               <FiUser className="mr-2" /> Profile
+            </Link>
+          </li>
+          <li>
+            <Link to="/users-all-boards" className="flex items-center text-gray-700 dark:text-gray-200 hover:text-blue-600 transition-all duration-300">
+              <FiLayers className="mr-2" /> All Boards
             </Link>
           </li>
         </ul>

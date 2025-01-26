@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { registerUser } from '../../../client/src/services/userApiServices';
+import { registerUser } from '../services/userApiServices';
 
 const SignupForm: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -21,11 +21,11 @@ const SignupForm: React.FC = () => {
     e.preventDefault();
     try {
       const response = await registerUser(formData);
-      console.log("Registration Successful");
+      //("Registration Successful");
       console.log("Server Response : " + response);
     } catch (error) {
-      console.log("Registration Failed");
-      console.log(error);
+      //("Registration Failed");
+      //(error);
     }
   };
 

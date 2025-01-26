@@ -19,6 +19,7 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     loginSuccess: (state, action: PayloadAction<AuthPayload>) => {
+      //@ts-ignore
       state.accessToken = action.payload.refreshToken;
       state.expiresAt = action.payload.expiresAt;
       state.user = action.payload.user;

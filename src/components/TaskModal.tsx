@@ -8,7 +8,9 @@ interface TaskModalProps {
 const TaskModal: React.FC<TaskModalProps> = ({ onClose, onSave }) => {
     const [taskName, setTaskName] = useState("");
     const [description, setDescription] = useState("");
+    //@ts-ignore
     const [startDate, setStartDate] = useState("");
+    //@ts-ignore
     const [endDate, setEndDate] = useState("");
     const [status, setStatus] = useState("Pending");
     const [assignedTo, setAssignedTo] = useState("");

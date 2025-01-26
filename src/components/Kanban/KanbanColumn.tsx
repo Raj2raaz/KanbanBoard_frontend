@@ -1,20 +1,21 @@
-import React, { useState, useEffect } from "react";
-import { rectSortingStrategy, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useDroppable } from "@dnd-kit/core";
 import KanbanTask from "./KanbanTask";
-import { v4 as uniqueId } from "uuid";
+// import { v4 as uniqueId } from "uuid";
 import { FaEdit, FaTrash, FaPlus } from "react-icons/fa";
 import { RiDragMove2Fill } from "react-icons/ri";
 import io from "socket.io-client";
 import { useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { UseSelector } from "react-redux";
+// import { UseSelector } from "react-redux";
 import { RootState } from "@reduxjs/toolkit/query";
 import { toast, ToastContainer } from 'react-toastify'
-import { addTask } from "../../redux/slices/taskSlice";
-import { addNewTask, editColumn, fetchTasks } from "../../services/userApiServices";
+// import { addTask } from "../../redux/slices/taskSlice";
+import { addNewTask, fetchTasks } from "../../services/taskApiService";
+import { editColumn } from "../../services/columnApiService";
 import TaskModal from "../TaskModal";
 
 // Initialize socket connection
@@ -24,7 +25,7 @@ const socket = io('http://localhost:4000', {
   reconnectionAttempts: 5,
   reconnectionDelay: 2000,
 });
-
+//@ts-ignore
 interface ColumnProps {
   column: {
     id: string;
@@ -34,40 +35,44 @@ interface ColumnProps {
   columns: any[];
   setColumns: (columns: any[]) => void;
 }
-
-const KanbanColumn: React.FC<ColumnProps> = ({ column, columns, setColumns }) => {
+//@ts-ignore
+const KanbanColumn = forwardRef(({ column, columns, setColumns }, ref) => {
   const [showModal, setShowModal] = useState(false);
-  const [tasks, setTasks] = useState()
+  const [tasks, setTasks] = useState<any>()
+  //@ts-ignore
   const dispatch = useDispatch();
-  const { setNodeRef, isOver } = useDroppable({ id: column.id });
-  // console.log('kanbancolumn')
+  const { setNodeRef, isOver } = useDroppable({ id: column._id });
   const { attributes, listeners, setNodeRef: sortableRef, transform, transition } = useSortable({
-    id: column.id,
+    id: column._id,
     data: { type: "column" },
   });
+  //@ts-ignore
+  const [taskVersion, setTaskVersion] = useState(0);
 
   const [isEditing, setIsEditing] = useState(false);
   const [columnTitle, setColumnTitle] = useState(column.title);
 
   const { boardId } = useParams<{ boardId: string }>();
   // Get the user ID and accessToken from Redux state
+  //@ts-ignore
   const user = useSelector((state: RootState) => state.auth.user);
   const token = localStorage.getItem("accessToken");
 
 
-  useEffect(() => {
-    // Listen for real-time column updates
-    socket.on("columnUpdated", (updatedColumns) => {
-      setColumns(updatedColumns);
-    });
+  // useEffect(() => {
+  //   // Listen for real-time column updates
+  //   socket.on("columnUpdated", (updatedColumns) => {
+  //     setColumns(updatedColumns);
+  //   });
 
-    return () => {
-      socket.off("columnUpdated");
-    };
-  }, [setColumns]);
+  //   return () => {
+  //     socket.off("columnUpdated");
+  //   };
+  // }, [setColumns]);
 
   // Delete the column
   const handleDeleteColumn = () => {
+    //@ts-ignore
     const updatedColumns = columns.filter((col) => col.id !== column.id);
     setColumns(updatedColumns);
 
@@ -77,21 +82,22 @@ const KanbanColumn: React.FC<ColumnProps> = ({ column, columns, setColumns }) =>
 
   // Save the edited column title
   const handleSaveColumn = async () => {
-    console.log("Column ID:", column._id);  // Check the value of columnId
-    console.log("Board ID:", boardId);    // Check the value of boardId
+    //("Column ID:", column._id);  // Check the value of columnId
+    //("Board ID:", boardId);    // Check the value of boardId
     if (!user || !token || !boardId) {
       alert("User not authenticated or Board ID missing");
       return;
     }
 
     setIsEditing(true);  // Enable editing mode
-    console.log('this is column title', columnTitle)
+    //('this is column title', columnTitle)
     try {
       const updatedColumn = await editColumn(boardId, column._id, columnTitle, token);
-      console.log("Updated Column:", updatedColumn);
+      //("Updated Column:", updatedColumn);
       toast.success("Column Updated Successfully!");
-
+      //@ts-ignore
       setColumns((prevColumns) =>
+        //@ts-ignore
         prevColumns.map((col) =>
           col.id === column._id ? { ...col, ...updatedColumn.column } : col
         )
@@ -102,9 +108,10 @@ const KanbanColumn: React.FC<ColumnProps> = ({ column, columns, setColumns }) =>
     } finally {
       setIsEditing(false);
     }
-    console.log('this is column title', columnTitle)
+    //('this is column title', columnTitle)
 
     if (!columnTitle.trim()) return;
+    //@ts-ignore
     const updatedColumns = columns.map((col) =>
       col.id === column._id ? { ...col, title: columnTitle } : col
     );
@@ -117,9 +124,10 @@ const KanbanColumn: React.FC<ColumnProps> = ({ column, columns, setColumns }) =>
   };
 
   // Add new task to the column
+  //@ts-ignore
   const handleAddTask = async (newTask) => {
-    console.log(newTask)
-    console.log("Adding task to column:", column._id);
+    //(newTask)
+    //("Adding task to column:", column._id);
 
     if (!boardId || !column._id || !token) {
       alert("Required data is missing.");
@@ -137,13 +145,15 @@ const KanbanColumn: React.FC<ColumnProps> = ({ column, columns, setColumns }) =>
     try {
       // Call API to add a new task
       const updatedTask = await addNewTask(boardId, column._id, newTaskData, token);
-      console.log("Updated Column:", updatedTask);
+      //("Updated Column:", updatedTask);
 
       // Show success message
       toast.success("Task Updated Successfully!");
 
       // Update the column state with the new task
+      //@ts-ignore
       setColumns((prevColumns) =>
+        //@ts-ignore
         prevColumns.map((col) =>
           col.id === column._id ? { ...col, items: [...col.items, updatedTask] } : col
         )
@@ -155,6 +165,7 @@ const KanbanColumn: React.FC<ColumnProps> = ({ column, columns, setColumns }) =>
     } finally {
       // Close the modal after the operation
       setShowModal(false);
+      window.location.reload();
     }
   };
 
@@ -169,26 +180,26 @@ const KanbanColumn: React.FC<ColumnProps> = ({ column, columns, setColumns }) =>
   };
 
 
-  useEffect(() => {
-    const loadTasks = async () => {
-      try {
-        const taskData = await fetchTasks(boardId, column._id, token);
-        console.log("this is taskData", taskData?.tasks);
-        if (taskData) {
-          setTasks(taskData?.tasks);  // Updating state after data is fetched
-          // // Extracting columns from the fetched board data and updating state
-          // if (board?.board?.columns) {
-          //     setColumns(board.board.columns);
-          //     console.log("Updated columns:", board.board.columns);
-          // }
-        }
-      } catch (error) {
-        console.error("Error loading board:", error);
+  const getTasks = async () => {
+    try {
+      //@ts-ignore
+      const taskData = await fetchTasks(boardId, column._id, token);
+      if (taskData) {
+        setTasks(taskData?.column?.tasks);
       }
-    };
+    } catch (error) {
+      console.error("Error loading tasks:", error);
+    }
+  };
 
-    loadTasks();
-  }, [tasks]);
+  useEffect(() => {
+    getTasks();
+  }, []);
+
+  // Expose getTasks function to parent component (Dashboard)
+  useImperativeHandle(ref, () => ({
+    refreshTasks: getTasks,
+  }));
 
   return (
     <div style={style}>
@@ -244,10 +255,11 @@ const KanbanColumn: React.FC<ColumnProps> = ({ column, columns, setColumns }) =>
         </div>
         {tasks?.length > 0 && (
           <>
-            <SortableContext items={tasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
+            <SortableContext items={tasks.map((task: any) => task._id)} strategy={verticalListSortingStrategy}>
               <div className="space-y-2">
-                {tasks?.map((task) => (
-                  <KanbanTask key={task.id} task={task} columnId={column.id} columns={columns} setColumns={setColumns} />
+
+                {tasks?.map((task: any) => (
+                  <KanbanTask key={task.id} task={task} columnId={column._id} columns={columns} setColumns={setColumns} />
                 ))}
               </div>
 
@@ -272,6 +284,6 @@ const KanbanColumn: React.FC<ColumnProps> = ({ column, columns, setColumns }) =>
       )}
     </div>
   );
-};
+});
 
 export default KanbanColumn;

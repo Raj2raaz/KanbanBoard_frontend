@@ -39,7 +39,7 @@ const LoginForm: React.FC = () => {
 
     try {
       const userData = await loginUser(formData); // Call API
-      console.log("Login Successful:", userData);
+      //("Login Successful:", userData);
 
       // Dispatch login success action to Redux
       dispatch(
@@ -52,7 +52,7 @@ const LoginForm: React.FC = () => {
 
       // Store token in localStorage for persistence
       localStorage.setItem("accessToken", userData.refreshToken);
-      // console.log(userData.accessToken+ "*****")
+      // //(userData.accessToken+ "*****")
 
       // Redirect to dashboard after login
       navigate("/createBoard");

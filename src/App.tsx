@@ -6,6 +6,8 @@ import Dashboard from "./pages/Dashboard";
 import { useSelector } from "react-redux";
 import { RootState } from "./redux/store";
 import CreateBoardPage from "./pages/CreateBoardPage";
+import AllBoards from "./pages/AllBoards";
+import Profile from "./pages/Profile";
 
 // Connect to the Socket.IO server with appropriate options
 const socket = io("http://localhost:5173", {
@@ -29,8 +31,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     // Listen for updates
+    //@ts-ignore
     socket.on('taskUpdated', (data) => {
-      console.log('Task update received:', data);
+      //('Task update received:', data);
     });
 
     // socket.on('connect_error', (error) => {
@@ -80,6 +83,23 @@ const App: React.FC = () => {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/users-all-boards"
+          element={
+            <ProtectedRoute>
+              <AllBoards />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/user-profile/:userId"
+          element={
+            <ProtectedRoute>
+              <Profile />
             </ProtectedRoute>
           }
         />
